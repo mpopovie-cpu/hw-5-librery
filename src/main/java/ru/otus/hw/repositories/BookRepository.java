@@ -13,4 +13,8 @@ public interface BookRepository {
     Book save(Book book);
 
     void deleteById(long id);
+
+    // догружает comments отдельным запросом в тот же persistence context,
+    // чтобы не смешивать несколько коллекций в одном JOIN FETCH
+    void initializeComments(Book book);
 }
