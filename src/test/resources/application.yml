@@ -1,8 +1,15 @@
 spring:
-  datasource:
-    url: jdbc:h2:mem:testdb
-  sql:
-    init:
-      mode: always
-      data-locations: data.sql
-      schema-locations: schema.sql
+  shell:
+    command:
+      version:
+        enabled: false
+
+  data:
+    mongodb:
+      database: testdb
+
+de:
+  flapdoodle:
+    mongodb:
+      embedded:
+        version: 7.0.14
