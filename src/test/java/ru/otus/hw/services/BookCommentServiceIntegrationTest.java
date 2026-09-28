@@ -1,14 +1,23 @@
 package ru.otus.hw.services;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import ru.otus.hw.exceptions.EntityNotFoundException;
+import ru.otus.hw.models.Author;
+import ru.otus.hw.models.Book;
+import ru.otus.hw.models.BookComment;
+import ru.otus.hw.models.Genre;
+import ru.otus.hw.repositories.AuthorRepository;
+import ru.otus.hw.repositories.BookCommentRepository;
+import ru.otus.hw.repositories.BookRepository;
+import ru.otus.hw.repositories.GenreRepository;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-// без @Transactional на классе - проверяем поведение ВНЕ транзакции сервиса
 @DisplayName("Интеграционный тест BookCommentService")
 @SpringBootTest
 class BookCommentServiceIntegrationTest {
@@ -16,33 +25,83 @@ class BookCommentServiceIntegrationTest {
     @Autowired
     private BookCommentService bookCommentService;
 
-    @DisplayName("доступ к book вне транзакции не должен вызывать LazyInitializationException")
-    @Test
-    void shouldAccessBookOutsideTransaction() {
-        var comment = bookCommentService.findById(1L).orElseThrow();
+    @Autowired
+    private AuthorRepository authorRepository;
 
-        assertThatCode(() -> comment.getBook().getTitle()).doesNotThrowAnyException();
+    @Autowired
+    private GenreRepository genreRepository;
+
+    @Autowired
+    private BookRepository bookRepository;
+
+    @Autowired
+    private BookCommentRepository bookCommentRepository;
+
+    private Book book;
+
+    @BeforeEach
+    void setUp() {
+        bookCommentRepository.deleteAll();
+        bookRepository.deleteAll();
+        authorRepository.deleteAll();
+        genreRepository.deleteAll();
+
+        var author = authorRepository.save(new Author("Author_1"));
+        var genre = genreRepository.save(new Genre("Genre_1"));
+        book = bookRepository.save(new Book("BookTitle_1", author, genre));
     }
 
-    @DisplayName("список комментариев книги доступен вне транзакции без исключений")
+    @DisplayName("должен загружать комментарий вместе с книгой")
     @Test
-    void shouldAccessBookForAllCommentsOutsideTransaction() {
-        var comments = bookCommentService.findAllByBookId(1L);
+    void shouldReturnCommentWithBook() {
+        var saved = bookCommentRepository.save(new BookComment("Comment_1", book.getId()));
 
-        assertThat(comments).isNotEmpty();
-        assertThatCode(() -> comments.forEach(c -> c.getBook().getId())).doesNotThrowAnyException();
+        var comment = bookCommentService.findById(saved.getId()).orElseThrow();
+
+        assertThat(comment.getBook()).isNotNull();
+        assertThat(comment.getBook().getTitle()).isEqualTo("BookTitle_1");
     }
 
-    @DisplayName("create/update/delete комментария работают корректно")
+    @DisplayName("должен загружать все комментарии книги с одной загрузкой книги на всех")
     @Test
-    void shouldCreateUpdateAndDeleteComment() {
-        var created = bookCommentService.create(2L, "temp comment");
-        assertThat(created.getId()).isGreaterThan(0);
+    void shouldReturnAllCommentsForBookWithBookResolved() {
+        bookCommentRepository.save(new BookComment("Comment_1", book.getId()));
+        bookCommentRepository.save(new BookComment("Comment_2", book.getId()));
 
-        var updated = bookCommentService.update(created.getId(), "updated comment");
-        assertThat(updated.getText()).isEqualTo("updated comment");
+        var comments = bookCommentService.findAllByBookId(book.getId());
 
-        bookCommentService.deleteById(created.getId());
-        assertThat(bookCommentService.findById(created.getId())).isEmpty();
+        assertThat(comments).hasSize(2)
+                .allSatisfy(c -> assertThat(c.getBook()).isNotNull());
+    }
+
+    @DisplayName("должен создавать комментарий")
+    @Test
+    void shouldCreateComment() {
+        var created = bookCommentService.create(book.getId(), "New comment");
+        assertThat(created.getId()).isNotNull();
+        assertThat(bookCommentRepository.findById(created.getId())).isPresent();
+    }
+
+    @DisplayName("должен выбрасывать исключение при создании комментария для несуществующей книги")
+    @Test
+    void shouldThrowWhenBookNotFound() {
+        assertThatThrownBy(() -> bookCommentService.create("non-existent-id", "text"))
+                .isInstanceOf(EntityNotFoundException.class);
+    }
+
+    @DisplayName("должен обновлять комментарий")
+    @Test
+    void shouldUpdateComment() {
+        var saved = bookCommentRepository.save(new BookComment("Old text", book.getId()));
+        var updated = bookCommentService.update(saved.getId(), "New text");
+        assertThat(updated.getText()).isEqualTo("New text");
+    }
+
+    @DisplayName("должен удалять комментарий по id")
+    @Test
+    void shouldDeleteComment() {
+        var saved = bookCommentRepository.save(new BookComment("Comment", book.getId()));
+        bookCommentService.deleteById(saved.getId());
+        assertThat(bookCommentRepository.findById(saved.getId())).isEmpty();
     }
 }
