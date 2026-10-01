@@ -1,14 +1,29 @@
 package ru.otus.hw.models;
 
 import lombok.AllArgsConstructor;
-import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
 
-@Data
-@AllArgsConstructor
+@Document(collection = "authors")
+@Getter
+@Setter
 @NoArgsConstructor
+@AllArgsConstructor
+@EqualsAndHashCode(of = "id")
+@ToString(of = {"id", "fullName"})
 public class Author {
-    private long id;
+
+    @Id
+    private String id;
 
     private String fullName;
+
+    public Author(String fullName) {
+        this.fullName = fullName;
+    }
 }

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Books</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<div th:replace="~{layout :: nav}"></div>
+<main>
+    <h1>Books</h1>
+    <p><a class="button" th:href="@{/books/new}">Add book</a></p>
+
+    <table>
+        <thead>
+        <tr>
+            <th>Title</th>
+            <th>Author</th>
+            <th>Genre</th>
+            <th>Actions</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="book : ${books}">
+            <td th:text="${book.title}">Title</td>
+            <td th:text="${book.author?.fullName}">Author</td>
+            <td th:text="${book.genre?.name}">Genre</td>
+            <td>
+                <a th:href="@{/books/{id}(id=${book.id})}">View</a>
+                <a th:href="@{/books/{id}/edit(id=${book.id})}">Edit</a>
+                <form class="inline" th:action="@{/books/{id}/delete(id=${book.id})}" method="post">
+                    <button type="submit" onclick="return confirm('Delete this book?')">Delete</button>
+                </form>
+            </td>
+        </tr>
+        <tr th:if="${#lists.isEmpty(books)}">
+            <td colspan="4">No books yet</td>
+        </tr>
+        </tbody>
+    </table>
+</main>
+</body>
+</html>

@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Not found</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<div th:replace="~{layout :: nav}"></div>
+<main>
+    <h1>Not found</h1>
+    <p class="error" th:text="${message}">Message</p>
+    <p><a th:href="@{/books}">Back to books</a></p>
+</main>
+</body>
+</html>
