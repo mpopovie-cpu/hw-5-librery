@@ -1,0 +1,58 @@
+package ru.otus.hw.controllers;
+
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
+import ru.otus.hw.models.Author;
+import ru.otus.hw.models.Genre;
+import ru.otus.hw.services.AuthorService;
+import ru.otus.hw.services.GenreService;
+
+import java.util.List;
+
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
+
+@DisplayName("Контроллеры авторов и жанров")
+@WebMvcTest({AuthorController.class, GenreController.class})
+class AuthorGenreControllerTest {
+
+    @Autowired
+    private MockMvc mvc;
+
+    @MockitoBean
+    private AuthorService authorService;
+
+    @MockitoBean
+    private GenreService genreService;
+
+    @Test
+    @DisplayName("GET /authors - список авторов")
+    void shouldShowAuthors() throws Exception {
+        var authors = List.of(new Author("a1", "Author_1"));
+        when(authorService.findAll()).thenReturn(authors);
+
+        mvc.perform(get("/authors"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("authors"))
+                .andExpect(model().attribute("authors", authors));
+    }
+
+    @Test
+    @DisplayName("GET /genres - список жанров")
+    void shouldShowGenres() throws Exception {
+        var genres = List.of(new Genre("g1", "Genre_1"));
+        when(genreService.findAll()).thenReturn(genres);
+
+        mvc.perform(get("/genres"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("genres"))
+                .andExpect(model().attribute("genres", genres));
+    }
+}

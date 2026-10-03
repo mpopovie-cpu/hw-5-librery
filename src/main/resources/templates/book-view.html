@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Book</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+<h1 th:text="${book.title}">Book title</h1>
+
+<p>
+    Author:
+    <span th:text="${book.author.fullName}"></span>
+</p>
+
+<p>
+    Genre:
+    <span th:text="${book.genre.name}"></span>
+</p>
+
+<h2>Comments</h2>
+
+<div th:if="${book.comments == null or book.comments.isEmpty()}">
+    No comments yet
+</div>
+
+<div th:each="comment : ${book.comments}">
+    <p th:text="${comment.text}"></p>
+</div>
+
+<br>
+
+<a th:href="@{/books/{id}/edit(id=${book.id})}">Edit</a>
+
+<button type="button"
+        id="delete-button"
+        th:data-book-id="${book.id}">
+    Delete
+</button>
+
+<a href="/books">Back</a>
+
+<script src="/css/js/book-view.js"></script>
+
+</body>
+</html>
