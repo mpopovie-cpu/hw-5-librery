@@ -1,30 +1,47 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <title>Book</title>
-    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
-<div th:replace="~{layout :: nav}"></div>
-<main>
-    <h1 th:text="${book.title}">Title</h1>
-    <p><b>Author:</b> <span th:text="${book.author?.fullName}">Author</span></p>
-    <p><b>Genre:</b> <span th:text="${book.genre?.name}">Genre</span></p>
 
-    <h2>Comments</h2>
-    <ul>
-        <li th:each="comment : ${book.comments}" th:text="${comment.text}">Comment</li>
-    </ul>
-    <p th:if="${#lists.isEmpty(book.comments)}">No comments yet</p>
+<h1 th:text="${book.title}">Book title</h1>
 
-    <div>
-        <a class="button" th:href="@{/books/{id}/edit(id=${book.id})}">Edit</a>
-        <form class="inline" th:action="@{/books/{id}/delete(id=${book.id})}" method="post">
-            <button type="submit" onclick="return confirm('Delete this book?')">Delete</button>
-        </form>
-        <a th:href="@{/books}">Back to books</a>
-    </div>
-</main>
+<p>
+    Author:
+    <span th:text="${book.author.fullName}"></span>
+</p>
+
+<p>
+    Genre:
+    <span th:text="${book.genre.name}"></span>
+</p>
+
+<h2>Comments</h2>
+
+<div th:if="${book.comments == null or book.comments.isEmpty()}">
+    No comments yet
+</div>
+
+<div th:each="comment : ${book.comments}">
+    <p th:text="${comment.text}"></p>
+</div>
+
+<br>
+
+<a th:href="@{/books/{id}/edit(id=${book.id})}">Edit</a>
+
+<button type="button"
+        id="delete-button"
+        th:data-book-id="${book.id}">
+    Delete
+</button>
+
+<a href="/books">Back</a>
+
+<script src="/css/js/book-view.js"></script>
+
 </body>
 </html>
