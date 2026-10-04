@@ -1,20 +1,20 @@
 package ru.otus.hw.services;
 
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import ru.otus.hw.models.Book;
 
-import java.util.List;
-import java.util.Optional;
-
 public interface BookService {
-    Optional<Book> findById(String id);
 
-    Optional<Book> findByIdWithComments(String id);
+    Mono<Book> findById(String id);
 
-    List<Book> findAll();
+    Mono<Book> findByIdWithComments(String id);
 
-    Book insert(String title, String authorId, String genreId);
+    Flux<Book> findAll();
 
-    Book update(String id, String title, String authorId, String genreId);
+    Mono<Book> insert(String title, String authorId, String genreId);
 
-    void deleteById(String id);
+    Mono<Book> update(String id, String title, String authorId, String genreId);
+
+    Mono<Void> deleteById(String id);
 }

@@ -1,18 +1,18 @@
 package ru.otus.hw.services;
 
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import ru.otus.hw.models.BookComment;
 
-import java.util.List;
-import java.util.Optional;
-
 public interface BookCommentService {
-    Optional<BookComment> findById(String id);
 
-    List<BookComment> findAllByBookId(String bookId);
+    Mono<BookComment> findById(String id);
 
-    BookComment create(String bookId, String text);
+    Flux<BookComment> findAllByBookId(String bookId);
 
-    BookComment update(String id, String text);
+    Mono<BookComment> create(String bookId, String text);
 
-    void deleteById(String id);
+    Mono<BookComment> update(String id, String text);
+
+    Mono<Void> deleteById(String id);
 }

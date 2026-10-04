@@ -11,62 +11,48 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import ru.otus.hw.dto.BookDto;
 import ru.otus.hw.dto.BookRequestDto;
 import ru.otus.hw.exceptions.EntityNotFoundException;
 import ru.otus.hw.services.BookService;
 
-import java.util.List;
-
-@RequiredArgsConstructor
 @RestController
 @RequestMapping("/api/books")
+@RequiredArgsConstructor
 public class BookRestController {
 
     private final BookService bookService;
 
     @GetMapping
-    public List<BookDto> findAll() {
-        return bookService.findAll().stream()
-                .map(BookDto::from)
-                .toList();
+    public Flux<BookDto> findAll() {
+        return bookService.findAll().map(BookDto::from);
     }
 
     @GetMapping("/{id}")
-    public BookDto findById(@PathVariable String id) {
+    public Mono<BookDto> findById(@PathVariable String id) {
         return bookService.findById(id)
                 .map(BookDto::from)
-                .orElseThrow(() ->
-                        new EntityNotFoundException(
-                                "Book with id %s not found".formatted(id)));
+                .switchIfEmpty(Mono.error(new EntityNotFoundException("Book not found: " + id)));
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public BookDto create(@RequestBody BookRequestDto request) {
-        var book = bookService.insert(
-                request.getTitle(),
-                request.getAuthorId(),
-                request.getGenreId());
-
-        return BookDto.from(book);
+    public Mono<BookDto> create(@RequestBody BookRequestDto request) {
+        return bookService.insert(request.getTitle(), request.getAuthorId(), request.getGenreId())
+                .map(BookDto::from);
     }
 
     @PutMapping("/{id}")
-    public BookDto update(@PathVariable String id,
-                          @RequestBody BookRequestDto request) {
-        var book = bookService.update(
-                id,
-                request.getTitle(),
-                request.getAuthorId(),
-                request.getGenreId());
-
-        return BookDto.from(book);
+    public Mono<BookDto> update(@PathVariable String id, @RequestBody BookRequestDto request) {
+        return bookService.update(id, request.getTitle(), request.getAuthorId(), request.getGenreId())
+                .map(BookDto::from);
     }
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void delete(@PathVariable String id) {
-        bookService.deleteById(id);
+    public Mono<Void> delete(@PathVariable String id) {
+        return bookService.deleteById(id);
     }
 }

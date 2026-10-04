@@ -1,9 +1,4 @@
 spring:
-  shell:
-    command:
-      version:
-        enabled: false
-
   data:
     mongodb:
       database: testdb
@@ -14,3 +9,6 @@ de:
       embedded:
         version: 7.0.14
 
+app:
+  seed:
+    enabled: false

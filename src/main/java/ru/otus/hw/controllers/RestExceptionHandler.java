@@ -8,7 +8,7 @@ import ru.otus.hw.exceptions.EntityNotFoundException;
 
 import java.util.Map;
 
-@RestControllerAdvice
+@RestControllerAdvice(assignableTypes = BookRestController.class)
 public class RestExceptionHandler {
 
     @ExceptionHandler(EntityNotFoundException.class)

@@ -1,109 +1,131 @@
 package ru.otus.hw.controllers;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
+import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.reactive.server.WebTestClient;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import ru.otus.hw.dto.BookRequestDto;
+import ru.otus.hw.exceptions.EntityNotFoundException;
+import ru.otus.hw.models.Author;
 import ru.otus.hw.models.Book;
+import ru.otus.hw.models.Genre;
 import ru.otus.hw.services.BookService;
 
-import java.util.List;
-import java.util.Optional;
-
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(BookRestController.class)
+@DisplayName("REST-контроллер книг")
+@WebFluxTest(BookRestController.class)
 class BookRestControllerTest {
 
     @Autowired
-    private MockMvc mockMvc;
+    private WebTestClient webTestClient;
 
     @MockitoBean
     private BookService bookService;
 
-    @Test
-    void shouldFindAllBooks() throws Exception {
-        when(bookService.findAll()).thenReturn(List.of());
-
-        mockMvc.perform(get("/api/books"))
-                .andExpect(status().isOk());
+    private Book book(String title) {
+        return new Book("1", title, new Author("a1", "Author_1"), new Genre("g1", "Genre_1"));
     }
 
     @Test
-    void shouldFindBookById() throws Exception {
-        var book = new Book();
-        book.setId("1");
-        book.setTitle("Test");
+    @DisplayName("GET /api/books - список книг")
+    void shouldFindAllBooks() {
+        when(bookService.findAll()).thenReturn(Flux.just(book("Test")));
 
-        when(bookService.findById("1")).thenReturn(Optional.of(book));
-
-        mockMvc.perform(get("/api/books/1"))
-                .andExpect(status().isOk());
+        webTestClient.get().uri("/api/books")
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$[0].id").isEqualTo("1")
+                .jsonPath("$[0].title").isEqualTo("Test")
+                .jsonPath("$[0].authorName").isEqualTo("Author_1")
+                .jsonPath("$[0].genreName").isEqualTo("Genre_1");
     }
 
     @Test
-    void shouldReturnNotFoundWhenBookDoesNotExist() throws Exception {
-        when(bookService.findById(anyString())).thenReturn(Optional.empty());
+    @DisplayName("GET /api/books/{id} - книга по id")
+    void shouldFindBookById() {
+        when(bookService.findById("1")).thenReturn(Mono.just(book("Test")));
 
-        mockMvc.perform(get("/api/books/1"))
-                .andExpect(status().isNotFound());
+        webTestClient.get().uri("/api/books/1")
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.title").isEqualTo("Test")
+                .jsonPath("$.authorId").isEqualTo("a1");
     }
 
     @Test
-    void shouldCreateBook() throws Exception {
-        var book = new Book();
-        book.setId("1");
-        book.setTitle("Test");
+    @DisplayName("GET /api/books/{id} для несуществующей книги - 404")
+    void shouldReturnNotFoundWhenBookDoesNotExist() {
+        when(bookService.findById("1")).thenReturn(Mono.empty());
 
-        when(bookService.insert("Test", "author1", "genre1"))
-                .thenReturn(book);
-
-        mockMvc.perform(post("/api/books")
-                        .contentType("application/json")
-                        .content("""
-                                {
-                                    "title": "Test",
-                                    "authorId": "author1",
-                                    "genreId": "genre1"
-                                }
-                                """))
-                .andExpect(status().isCreated());
+        webTestClient.get().uri("/api/books/1")
+                .exchange()
+                .expectStatus().isNotFound()
+                .expectBody()
+                .jsonPath("$.error").isEqualTo("Book not found: 1");
     }
 
     @Test
-    void shouldUpdateBook() throws Exception {
-        var book = new Book();
-        book.setId("1");
-        book.setTitle("Updated");
+    @DisplayName("POST /api/books - создание книги")
+    void shouldCreateBook() {
+        when(bookService.insert("Test", "a1", "g1")).thenReturn(Mono.just(book("Test")));
 
-        when(bookService.update("1", "Updated", "author1", "genre1"))
-                .thenReturn(book);
-
-        mockMvc.perform(put("/api/books/1")
-                        .contentType("application/json")
-                        .content("""
-                                {
-                                    "title": "Updated",
-                                    "authorId": "author1",
-                                    "genreId": "genre1"
-                                }
-                                """))
-                .andExpect(status().isOk());
+        webTestClient.post().uri("/api/books")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(new BookRequestDto("Test", "a1", "g1"))
+                .exchange()
+                .expectStatus().isCreated()
+                .expectBody()
+                .jsonPath("$.id").isEqualTo("1")
+                .jsonPath("$.title").isEqualTo("Test");
     }
 
     @Test
-    void shouldDeleteBook() throws Exception {
-        doNothing().when(bookService).deleteById("1");
+    @DisplayName("POST /api/books с несуществующим автором - 404")
+    void shouldReturnNotFoundWhenAuthorDoesNotExist() {
+        when(bookService.insert("Test", "bad", "g1"))
+                .thenReturn(Mono.error(new EntityNotFoundException("Author not found: bad")));
 
-        mockMvc.perform(delete("/api/books/1"))
-                .andExpect(status().isNoContent());
+        webTestClient.post().uri("/api/books")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(new BookRequestDto("Test", "bad", "g1"))
+                .exchange()
+                .expectStatus().isNotFound()
+                .expectBody()
+                .jsonPath("$.error").isEqualTo("Author not found: bad");
+    }
+
+    @Test
+    @DisplayName("PUT /api/books/{id} - обновление книги")
+    void shouldUpdateBook() {
+        when(bookService.update("1", "Updated", "a1", "g1")).thenReturn(Mono.just(book("Updated")));
+
+        webTestClient.put().uri("/api/books/1")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(new BookRequestDto("Updated", "a1", "g1"))
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.title").isEqualTo("Updated");
+    }
+
+    @Test
+    @DisplayName("DELETE /api/books/{id} - удаление книги")
+    void shouldDeleteBook() {
+        when(bookService.deleteById("1")).thenReturn(Mono.empty());
+
+        webTestClient.delete().uri("/api/books/1")
+                .exchange()
+                .expectStatus().isNoContent();
+
+        verify(bookService).deleteById("1");
     }
 }
