@@ -13,10 +13,15 @@ import ru.otus.hw.models.Book;
 public class BookDto {
 
     private String id;
+
     private String title;
+
     private String authorId;
+
     private String authorName;
+
     private String genreId;
+
     private String genreName;
 
     public static BookDto from(Book book) {

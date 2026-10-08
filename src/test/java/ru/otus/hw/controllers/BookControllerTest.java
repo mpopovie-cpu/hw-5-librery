@@ -4,11 +4,14 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import ru.otus.hw.models.Author;
 import ru.otus.hw.models.Book;
 import ru.otus.hw.models.Genre;
+import ru.otus.hw.security.SecurityConfiguration;
 import ru.otus.hw.services.AuthorService;
 import ru.otus.hw.services.BookService;
 import ru.otus.hw.services.GenreService;
@@ -30,6 +33,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @DisplayName("Контроллер книг")
 @WebMvcTest(BookController.class)
+@Import(SecurityConfiguration.class)
 class BookControllerTest {
 
     @Autowired
@@ -51,6 +55,7 @@ class BookControllerTest {
     private final Book book = new Book("b1", "Title_1", author, genre);
 
     @Test
+    @WithMockUser
     @DisplayName("GET /books - список книг")
     void shouldShowBookList() throws Exception {
         when(bookService.findAll()).thenReturn(List.of(book));
@@ -62,6 +67,32 @@ class BookControllerTest {
     }
 
     @Test
+    @DisplayName("GET /books без аутентификации - редирект на логин")
+    void shouldRedirectWhenUnauthorizedToBookList() throws Exception {
+        mvc.perform(get("/books"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("http://localhost/login"));
+    }
+
+    @Test
+    @WithMockUser
+    @DisplayName("GET / - редирект на список книг для авторизованного пользователя")
+    void shouldRedirectToBooksWhenAuthenticatedOnIndex() throws Exception {
+        mvc.perform(get("/"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/books"));
+    }
+
+    @Test
+    @DisplayName("GET / без аутентификации - редирект на логин")
+    void shouldRedirectWhenUnauthorizedToIndex() throws Exception {
+        mvc.perform(get("/"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("http://localhost/login"));
+    }
+
+    @Test
+    @WithMockUser
     @DisplayName("GET /books/new - форма создания")
     void shouldShowCreateForm() throws Exception {
         when(authorService.findAll()).thenReturn(List.of(author));
@@ -76,6 +107,15 @@ class BookControllerTest {
     }
 
     @Test
+    @DisplayName("GET /books/new без аутентификации - редирект на логин")
+    void shouldRedirectWhenUnauthorizedToCreateForm() throws Exception {
+        mvc.perform(get("/books/new"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("http://localhost/login"));
+    }
+
+    @Test
+    @WithMockUser
     @DisplayName("POST /books - создание книги и редирект на список")
     void shouldCreateBook() throws Exception {
         mvc.perform(post("/books")
@@ -89,6 +129,20 @@ class BookControllerTest {
     }
 
     @Test
+    @DisplayName("POST /books без аутентификации - редирект на логин")
+    void shouldRedirectWhenUnauthorizedToCreateBook() throws Exception {
+        mvc.perform(post("/books")
+                        .param("title", "New title")
+                        .param("authorId", "a1")
+                        .param("genreId", "g1"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("http://localhost/login"));
+
+        verify(bookService, never()).insert(anyString(), anyString(), anyString());
+    }
+
+    @Test
+    @WithMockUser
     @DisplayName("POST /books с пустым названием - возврат на форму, книга не создаётся")
     void shouldNotCreateBookWithBlankTitle() throws Exception {
         mvc.perform(post("/books")
@@ -103,6 +157,7 @@ class BookControllerTest {
     }
 
     @Test
+    @WithMockUser
     @DisplayName("GET /books/{id} - просмотр книги с комментариями")
     void shouldShowBook() throws Exception {
         when(bookService.findByIdWithComments("b1")).thenReturn(Optional.of(book));
@@ -114,6 +169,15 @@ class BookControllerTest {
     }
 
     @Test
+    @DisplayName("GET /books/{id} без аутентификации - редирект на логин")
+    void shouldRedirectWhenUnauthorizedToBook() throws Exception {
+        mvc.perform(get("/books/b1"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("http://localhost/login"));
+    }
+
+    @Test
+    @WithMockUser
     @DisplayName("GET /books/{id} для несуществующей книги - 404")
     void shouldReturn404WhenBookNotFound() throws Exception {
         when(bookService.findByIdWithComments("missing")).thenReturn(Optional.empty());
@@ -125,6 +189,7 @@ class BookControllerTest {
     }
 
     @Test
+    @WithMockUser
     @DisplayName("GET /books/{id}/edit - форма редактирования")
     void shouldShowEditForm() throws Exception {
         when(bookService.findById("b1")).thenReturn(Optional.of(book));
@@ -140,6 +205,15 @@ class BookControllerTest {
     }
 
     @Test
+    @DisplayName("GET /books/{id}/edit без аутентификации - редирект на логин")
+    void shouldRedirectWhenUnauthorizedToEditForm() throws Exception {
+        mvc.perform(get("/books/b1/edit"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("http://localhost/login"));
+    }
+
+    @Test
+    @WithMockUser
     @DisplayName("POST /books/{id} - обновление книги и редирект на список")
     void shouldUpdateBook() throws Exception {
         mvc.perform(post("/books/b1")
@@ -153,6 +227,20 @@ class BookControllerTest {
     }
 
     @Test
+    @DisplayName("POST /books/{id} без аутентификации - редирект на логин")
+    void shouldRedirectWhenUnauthorizedToUpdateBook() throws Exception {
+        mvc.perform(post("/books/b1")
+                        .param("title", "Updated")
+                        .param("authorId", "a1")
+                        .param("genreId", "g1"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("http://localhost/login"));
+
+        verify(bookService, never()).update(anyString(), anyString(), anyString(), anyString());
+    }
+
+    @Test
+    @WithMockUser
     @DisplayName("POST /books/{id}/delete - удаление книги и редирект на список")
     void shouldDeleteBook() throws Exception {
         mvc.perform(post("/books/b1/delete"))
@@ -163,6 +251,17 @@ class BookControllerTest {
     }
 
     @Test
+    @DisplayName("POST /books/{id}/delete без аутентификации - редирект на логин")
+    void shouldRedirectWhenUnauthorizedToDeleteBook() throws Exception {
+        mvc.perform(post("/books/b1/delete"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("http://localhost/login"));
+
+        verify(bookService, never()).deleteById(any());
+    }
+
+    @Test
+    @WithMockUser
     @DisplayName("GET /books/{id}/delete не удаляет книгу")
     void shouldNotDeleteBookByGet() throws Exception {
         mvc.perform(get("/books/b1/delete"))
