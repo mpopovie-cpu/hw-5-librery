@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Layout</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div th:fragment="nav">
+    <nav>
+        <a href="/books" th:href="@{/books}">Books</a>
+        <a href="/authors" th:href="@{/authors}">Authors</a>
+        <a href="/genres" th:href="@{/genres}">Genres</a>
+    </nav>
+</div>
+</body>
+</html>

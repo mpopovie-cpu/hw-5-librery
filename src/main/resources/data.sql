@@ -6,3 +6,6 @@ values ('Genre_1'), ('Genre_2'), ('Genre_3');
 
 insert into books(title, author_id, genre_id)
 values ('BookTitle_1', 1, 1), ('BookTitle_2', 2, 2), ('BookTitle_3', 3, 3);
+
+insert into book_comments(text, book_id)
+values ('Comment_1_1', 1), ('Comment_1_2', 1), ('Comment_2_1', 2);
