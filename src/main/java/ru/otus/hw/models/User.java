@@ -1,11 +1,6 @@
 package ru.otus.hw.models;
 
-import lombok.AllArgsConstructor;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-import lombok.ToString;
+import lombok.*;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
@@ -18,6 +13,7 @@ import java.util.List;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 @EqualsAndHashCode(of = "id")
 @ToString(of = {"id", "username"})
 public class User {
@@ -30,15 +26,12 @@ public class User {
 
     private String password;
 
+    @Builder.Default
     private List<String> roles = new ArrayList<>();
 
     public User(String username, String password, List<String> roles) {
         this.username = username;
         this.password = password;
         this.roles = roles;
-    }
-
-    public User(String username, String password) {
-        this(username, password, List.of("ROLE_USER"));
     }
 }
