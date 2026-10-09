@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
     <meta charset="UTF-8">
     <title>Book</title>
@@ -26,14 +27,33 @@
 </div>
 
 <div th:each="comment : ${book.comments}">
-    <p th:text="${comment.text}"></p>
+    <p>
+        <span th:text="${comment.text}"></span>
+        <span th:if="${comment.authorUsername != null}" th:text="' — ' + ${comment.authorUsername}"></span>
+    </p>
+    <form th:if="${#authorization.expression('hasRole(''ADMIN'')') or #authentication.name == comment.authorUsername}"
+          th:action="@{/books/{bookId}/comments/{commentId}(bookId=${book.id}, commentId=${comment.id})}"
+          method="post">
+        <input type="text" name="text" th:value="${comment.text}" required>
+        <button type="submit">Update</button>
+    </form>
+    <form th:if="${#authorization.expression('hasRole(''ADMIN'')') or #authentication.name == comment.authorUsername}"
+          th:action="@{/books/{bookId}/comments/{commentId}/delete(bookId=${book.id}, commentId=${comment.id})}"
+          method="post">
+        <button type="submit">Delete comment</button>
+    </form>
 </div>
+
+<form sec:authorize="isAuthenticated()" th:action="@{/books/{bookId}/comments(bookId=${book.id})}" method="post">
+    <input type="text" name="text" placeholder="New comment" required>
+    <button type="submit">Add comment</button>
+</form>
 
 <br>
 
-<a th:href="@{/books/{id}/edit(id=${book.id})}">Edit</a>
+<a sec:authorize="hasRole('ADMIN')" th:href="@{/books/{id}/edit(id=${book.id})}">Edit</a>
 
-<button type="button"
+<button sec:authorize="hasRole('ADMIN')" type="button"
         id="delete-button"
         th:data-book-id="${book.id}">
     Delete

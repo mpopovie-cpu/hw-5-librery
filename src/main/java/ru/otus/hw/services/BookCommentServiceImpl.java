@@ -1,6 +1,8 @@
 package ru.otus.hw.services;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import ru.otus.hw.exceptions.EntityNotFoundException;
 import ru.otus.hw.models.BookComment;
@@ -28,20 +30,22 @@ public class BookCommentServiceImpl implements BookCommentService {
     @Override
     public List<BookComment> findAllByBookId(String bookId) {
         var comments = bookCommentRepository.findAllByBookId(bookId);
-        // одна и та же книга для всех комментариев - загружаем её один раз
         bookRepository.findById(bookId).ifPresent(book -> comments.forEach(c -> c.setBook(book)));
         return comments;
     }
 
     @Override
+    @PreAuthorize("isAuthenticated()")
     public BookComment create(String bookId, String text) {
         bookRepository.findById(bookId)
                 .orElseThrow(() -> new EntityNotFoundException("Book with id %s not found".formatted(bookId)));
-        var comment = new BookComment(text, bookId);
+        var username = SecurityContextHolder.getContext().getAuthentication().getName();
+        var comment = new BookComment(text, bookId, username);
         return bookCommentRepository.save(comment);
     }
 
     @Override
+    @PreAuthorize("hasRole('ADMIN') or @bookCommentSecurity.isOwner(#id)")
     public BookComment update(String id, String text) {
         var comment = bookCommentRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Comment with id %s not found".formatted(id)));
@@ -50,7 +54,11 @@ public class BookCommentServiceImpl implements BookCommentService {
     }
 
     @Override
+    @PreAuthorize("hasRole('ADMIN') or @bookCommentSecurity.isOwner(#id)")
     public void deleteById(String id) {
+        if (!bookCommentRepository.existsById(id)) {
+            throw new EntityNotFoundException("Comment with id %s not found".formatted(id));
+        }
         bookCommentRepository.deleteById(id);
     }
 }

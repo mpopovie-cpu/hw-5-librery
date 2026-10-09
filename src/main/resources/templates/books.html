@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 
-<html lang="en">
+<html lang="en" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
     <meta charset="UTF-8">
     <title>Books</title>
@@ -10,7 +10,7 @@
 
 <h1>Books</h1>
 
-<a href="/books/new">Add book</a>
+<a sec:authorize="hasRole('ADMIN')" href="/books/new">Add book</a>
 
 <table>
     <thead>

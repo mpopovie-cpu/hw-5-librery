@@ -16,7 +16,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 @Setter
 @NoArgsConstructor
 @EqualsAndHashCode(of = "id")
-@ToString(of = {"id", "text"})
+@ToString(of = {"id", "text", "authorUsername"})
 public class BookComment {
 
     @Id
@@ -27,6 +27,8 @@ public class BookComment {
     @Indexed
     private String bookId;
 
+    private String authorUsername;
+
     @Transient
     private Book book;
 
@@ -35,9 +37,16 @@ public class BookComment {
         this.bookId = bookId;
     }
 
-    public BookComment(String id, String text, String bookId) {
+    public BookComment(String text, String bookId, String authorUsername) {
+        this.text = text;
+        this.bookId = bookId;
+        this.authorUsername = authorUsername;
+    }
+
+    public BookComment(String id, String text, String bookId, String authorUsername) {
         this.id = id;
         this.text = text;
         this.bookId = bookId;
+        this.authorUsername = authorUsername;
     }
 }

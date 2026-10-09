@@ -92,7 +92,7 @@ class BookControllerTest {
     }
 
     @Test
-    @WithMockUser
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("GET /books/new - форма создания")
     void shouldShowCreateForm() throws Exception {
         when(authorService.findAll()).thenReturn(List.of(author));
@@ -115,7 +115,15 @@ class BookControllerTest {
     }
 
     @Test
-    @WithMockUser
+    @WithMockUser(roles = "USER")
+    @DisplayName("GET /books/new для ROLE_USER - доступ запрещён")
+    void shouldForbidUserFromCreateForm() throws Exception {
+        mvc.perform(get("/books/new"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("POST /books - создание книги и редирект на список")
     void shouldCreateBook() throws Exception {
         mvc.perform(post("/books")
@@ -142,7 +150,20 @@ class BookControllerTest {
     }
 
     @Test
-    @WithMockUser
+    @WithMockUser(roles = "USER")
+    @DisplayName("POST /books для ROLE_USER - доступ запрещён")
+    void shouldForbidUserFromCreateBook() throws Exception {
+        mvc.perform(post("/books")
+                        .param("title", "New title")
+                        .param("authorId", "a1")
+                        .param("genreId", "g1"))
+                .andExpect(status().isForbidden());
+
+        verify(bookService, never()).insert(anyString(), anyString(), anyString());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("POST /books с пустым названием - возврат на форму, книга не создаётся")
     void shouldNotCreateBookWithBlankTitle() throws Exception {
         mvc.perform(post("/books")
@@ -189,7 +210,7 @@ class BookControllerTest {
     }
 
     @Test
-    @WithMockUser
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("GET /books/{id}/edit - форма редактирования")
     void shouldShowEditForm() throws Exception {
         when(bookService.findById("b1")).thenReturn(Optional.of(book));
@@ -213,7 +234,15 @@ class BookControllerTest {
     }
 
     @Test
-    @WithMockUser
+    @WithMockUser(roles = "USER")
+    @DisplayName("GET /books/{id}/edit для ROLE_USER - доступ запрещён")
+    void shouldForbidUserFromEditForm() throws Exception {
+        mvc.perform(get("/books/b1/edit"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("POST /books/{id} - обновление книги и редирект на список")
     void shouldUpdateBook() throws Exception {
         mvc.perform(post("/books/b1")
@@ -240,7 +269,20 @@ class BookControllerTest {
     }
 
     @Test
-    @WithMockUser
+    @WithMockUser(roles = "USER")
+    @DisplayName("POST /books/{id} для ROLE_USER - доступ запрещён")
+    void shouldForbidUserFromUpdateBook() throws Exception {
+        mvc.perform(post("/books/b1")
+                        .param("title", "Updated")
+                        .param("authorId", "a1")
+                        .param("genreId", "g1"))
+                .andExpect(status().isForbidden());
+
+        verify(bookService, never()).update(anyString(), anyString(), anyString(), anyString());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("POST /books/{id}/delete - удаление книги и редирект на список")
     void shouldDeleteBook() throws Exception {
         mvc.perform(post("/books/b1/delete"))
@@ -261,7 +303,17 @@ class BookControllerTest {
     }
 
     @Test
-    @WithMockUser
+    @WithMockUser(roles = "USER")
+    @DisplayName("POST /books/{id}/delete для ROLE_USER - доступ запрещён")
+    void shouldForbidUserFromDeleteBook() throws Exception {
+        mvc.perform(post("/books/b1/delete"))
+                .andExpect(status().isForbidden());
+
+        verify(bookService, never()).deleteById(any());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("GET /books/{id}/delete не удаляет книгу")
     void shouldNotDeleteBookByGet() throws Exception {
         mvc.perform(get("/books/b1/delete"))

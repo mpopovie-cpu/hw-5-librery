@@ -5,6 +5,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.security.test.context.support.WithMockUser;
 import ru.otus.hw.exceptions.EntityNotFoundException;
 import ru.otus.hw.models.Author;
 import ru.otus.hw.models.Book;
@@ -76,6 +77,7 @@ class BookCommentServiceIntegrationTest {
 
     @DisplayName("должен создавать комментарий")
     @Test
+    @WithMockUser(username = "user", roles = "USER")
     void shouldCreateComment() {
         var created = bookCommentService.create(book.getId(), "New comment");
         assertThat(created.getId()).isNotNull();
@@ -84,6 +86,7 @@ class BookCommentServiceIntegrationTest {
 
     @DisplayName("должен выбрасывать исключение при создании комментария для несуществующей книги")
     @Test
+    @WithMockUser(username = "user", roles = "USER")
     void shouldThrowWhenBookNotFound() {
         assertThatThrownBy(() -> bookCommentService.create("non-existent-id", "text"))
                 .isInstanceOf(EntityNotFoundException.class);
@@ -91,16 +94,18 @@ class BookCommentServiceIntegrationTest {
 
     @DisplayName("должен обновлять комментарий")
     @Test
+    @WithMockUser(username = "user", roles = "USER")
     void shouldUpdateComment() {
-        var saved = bookCommentRepository.save(new BookComment("Old text", book.getId()));
+        var saved = bookCommentRepository.save(new BookComment("Old text", book.getId(), "user"));
         var updated = bookCommentService.update(saved.getId(), "New text");
         assertThat(updated.getText()).isEqualTo("New text");
     }
 
     @DisplayName("должен удалять комментарий по id")
     @Test
+    @WithMockUser(username = "user", roles = "USER")
     void shouldDeleteComment() {
-        var saved = bookCommentRepository.save(new BookComment("Comment", book.getId()));
+        var saved = bookCommentRepository.save(new BookComment("Comment", book.getId(), "user"));
         bookCommentService.deleteById(saved.getId());
         assertThat(bookCommentRepository.findById(saved.getId())).isEmpty();
     }

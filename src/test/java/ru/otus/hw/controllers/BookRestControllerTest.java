@@ -82,7 +82,7 @@ class BookRestControllerTest {
     }
 
     @Test
-    @WithMockUser
+    @WithMockUser(roles = "ADMIN")
     void shouldCreateBook() throws Exception {
         var book = new Book();
         book.setId("1");
@@ -121,7 +121,24 @@ class BookRestControllerTest {
     }
 
     @Test
-    @WithMockUser
+    @WithMockUser(roles = "USER")
+    void shouldForbidUserFromCreateBook() throws Exception {
+        mockMvc.perform(post("/api/books")
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                    "title": "Test",
+                                    "authorId": "author1",
+                                    "genreId": "genre1"
+                                }
+                                """))
+                .andExpect(status().isForbidden());
+
+        verify(bookService, never()).insert(anyString(), anyString(), anyString());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
     void shouldUpdateBook() throws Exception {
         var book = new Book();
         book.setId("1");
@@ -160,7 +177,24 @@ class BookRestControllerTest {
     }
 
     @Test
-    @WithMockUser
+    @WithMockUser(roles = "USER")
+    void shouldForbidUserFromUpdateBook() throws Exception {
+        mockMvc.perform(put("/api/books/1")
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                    "title": "Updated",
+                                    "authorId": "author1",
+                                    "genreId": "genre1"
+                                }
+                                """))
+                .andExpect(status().isForbidden());
+
+        verify(bookService, never()).update(anyString(), anyString(), anyString(), anyString());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
     void shouldDeleteBook() throws Exception {
         doNothing().when(bookService).deleteById("1");
 
@@ -173,6 +207,15 @@ class BookRestControllerTest {
         mockMvc.perform(delete("/api/books/1"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("http://localhost/login"));
+
+        verify(bookService, never()).deleteById(anyString());
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void shouldForbidUserFromDeleteBook() throws Exception {
+        mockMvc.perform(delete("/api/books/1"))
+                .andExpect(status().isForbidden());
 
         verify(bookService, never()).deleteById(anyString());
     }
