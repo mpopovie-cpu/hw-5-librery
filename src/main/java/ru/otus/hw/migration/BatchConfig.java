@@ -1,7 +1,6 @@
 package ru.otus.hw.migration;
 
-import ru.otus.hw.migration.document.UserDocument;
-import ru.otus.hw.models.User;
+import ru.otus.hw.models.*;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.job.builder.JobBuilder;
@@ -15,58 +14,90 @@ import org.springframework.batch.item.database.builder.JpaPagingItemReaderBuilde
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.data.mongodb.core.MongoTemplate;
 
 import jakarta.persistence.EntityManagerFactory;
-import org.springframework.data.mongodb.core.MongoTemplate;
-import java.util.List;
+import java.util.ArrayList;
 
 @Configuration
 public class BatchConfig {
 
     @Bean
-    public ItemReader<User> reader(EntityManagerFactory emf) {
-        return new JpaPagingItemReaderBuilder<User>()
-                .name("userReader")
-                .entityManagerFactory(emf)
-                .query("SELECT u FROM User u")
-                .build();
+    public ItemReader<BookEntity> bookReader(EntityManagerFactory emf) {
+        JpaPagingItemReader<BookEntity> reader = new JpaPagingItemReader<>();
+        reader.setEntityManagerFactory(emf);
+        reader.setQueryString("SELECT b FROM BookEntity b");
+        reader.setPageSize(10);
+        return reader;
     }
 
     @Bean
-    public ItemProcessor<User, UserDocument> processor() {
-        return user -> new UserDocument(
-                String.valueOf(user.getId()),
-                user.getUsername(),
-                user.getEmail()
+    public ItemProcessor<BookEntity, BookMongo> bookProcessor() {
+        return book -> new BookMongo(
+                String.valueOf(book.getId()),
+                book.getTitle(),
+                String.valueOf(book.getAuthorId()),
+                String.valueOf(book.getGenreId())
         );
     }
 
     @Bean
-    public ItemWriter<UserDocument> writer(MongoTemplate mongoTemplate) {
+    public ItemWriter<BookMongo> bookWriter(MongoTemplate mongoTemplate) {
         return items -> {
-            List<? extends UserDocument> list = (List<? extends UserDocument>) items;
-            for (UserDocument doc : list) {
-                mongoTemplate.save(doc);
+            for (Object item : items) {
+                mongoTemplate.save((BookMongo) item);
             }
         };
     }
 
     @Bean
-    public Step migrationStep(JobRepository jobRepository, PlatformTransactionManager transactionManager,
-                               ItemReader<User> reader, ItemProcessor<User, UserDocument> processor,
-                               ItemWriter<UserDocument> writer) {
-        return new StepBuilder("migrationStep", jobRepository)
-                .<User, UserDocument>chunk(10, transactionManager)
-                .reader(reader)
-                .processor(processor)
-                .writer(writer)
-                .build();
+    public Step bookStep(JobRepository jobRepository, PlatformTransactionManager txManager, 
+                         ItemReader<BookEntity> reader, ItemProcessor<BookEntity, BookMongo> proc, ItemWriter<BookMongo> writer) {
+        return new StepBuilder("bookStep", jobRepository)
+                .<BookEntity, BookMongo>chunk(10, txManager)
+                .reader(reader).processor(proc).writer(writer).build();
     }
 
     @Bean
-    public Job migrateUserJob(JobRepository jobRepository, Step migrationStep) {
-        return new JobBuilder("migrateUserJob", jobRepository)
-                .start(migrationStep)
+    public ItemReader<AuthorEntity> authorReader(EntityManagerFactory emf) {
+        JpaPagingItemReader<AuthorEntity> reader = new JpaPagingItemReader<>();
+        reader.setEntityManagerFactory(emf);
+        reader.setQueryString("SELECT a FROM AuthorEntity a");
+        reader.setPageSize(10);
+        return reader;
+    }
+
+    @Bean
+    public ItemProcessor<AuthorEntity, AuthorMongo> authorProcessor() {
+        return author -> new AuthorMongo(
+                String.valueOf(author.getId()),
+                author.getFullName(),
+                new ArrayList<>()
+        );
+    }
+
+    @Bean
+    public ItemWriter<AuthorMongo> authorWriter(MongoTemplate mongoTemplate) {
+        return items -> {
+            for (Object item : items) {
+                mongoTemplate.save((AuthorMongo) item);
+            }
+        };
+    }
+
+    @Bean
+    public Step authorStep(JobRepository jobRepository, PlatformTransactionManager txManager, 
+                            ItemReader<AuthorEntity> reader, ItemProcessor<AuthorEntity, AuthorMongo> proc, ItemWriter<AuthorMongo> writer) {
+        return new StepBuilder("authorStep", jobRepository)
+                .<AuthorEntity, AuthorMongo>chunk(10, txManager)
+                .reader(reader).processor(proc).writer(writer).build();
+    }
+
+    @Bean
+    public Job migrationJob(JobRepository jobRepository, Step bookStep, Step authorStep) {
+        return new JobBuilder("migrationJob", jobRepository)
+                .start(bookStep)
+                .next(authorStep)
                 .build();
     }
 }
