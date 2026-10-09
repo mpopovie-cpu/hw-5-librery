@@ -1,6 +1,7 @@
 package ru.otus.hw.services;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import ru.otus.hw.exceptions.EntityNotFoundException;
 import ru.otus.hw.models.Author;
@@ -20,11 +21,8 @@ import java.util.stream.Collectors;
 @Service
 public class BookServiceImpl implements BookService {
     private final AuthorRepository authorRepository;
-
     private final GenreRepository genreRepository;
-
     private final BookRepository bookRepository;
-
     private final BookCommentRepository bookCommentRepository;
 
     @Override
@@ -44,9 +42,6 @@ public class BookServiceImpl implements BookService {
     @Override
     public List<Book> findAll() {
         var books = bookRepository.findAll();
-
-        // без фанатизма: пакетная подгрузка авторов/жанров одним запросом на коллекцию,
-        // а не по одному запросу на книгу (аналог борьбы с N+1 для MongoDB)
         var authorIds = books.stream().map(Book::getAuthorId).distinct().toList();
         var genreIds = books.stream().map(Book::getGenreId).distinct().toList();
 
@@ -63,19 +58,20 @@ public class BookServiceImpl implements BookService {
     }
 
     @Override
+    @PreAuthorize("hasRole('ADMIN')")
     public Book insert(String title, String authorId, String genreId) {
         return save(null, title, authorId, genreId);
     }
 
     @Override
+    @PreAuthorize("hasRole('ADMIN')")
     public Book update(String id, String title, String authorId, String genreId) {
         return save(id, title, authorId, genreId);
     }
 
     @Override
+    @PreAuthorize("hasRole('ADMIN')")
     public void deleteById(String id) {
-        // целевое удаление комментариев книги без загрузки их в память,
-        // явно из сервиса (не через MongoEventListener)
         bookCommentRepository.deleteAllByBookId(id);
         bookRepository.deleteById(id);
     }
