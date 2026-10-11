@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
+import ru.otus.hw.clients.RecommendationClient;
 import ru.otus.hw.exceptions.EntityNotFoundException;
 import ru.otus.hw.models.Book;
 import ru.otus.hw.services.AuthorService;
@@ -21,10 +22,9 @@ import ru.otus.hw.services.GenreService;
 public class BookController {
 
     private final BookService bookService;
-
     private final AuthorService authorService;
-
     private final GenreService genreService;
+    private final RecommendationClient recommendationClient;
 
     @GetMapping("/")
     public String index() {
@@ -59,7 +59,11 @@ public class BookController {
     public String viewBook(@PathVariable String id, Model model) {
         var book = bookService.findByIdWithComments(id)
                 .orElseThrow(() -> new EntityNotFoundException("Book with id %s not found".formatted(id)));
+        
+        String recommendation = recommendationClient.getRecommendation(id);
+        
         model.addAttribute("book", book);
+        model.addAttribute("recommendation", recommendation);
         return "book-view";
     }
 
@@ -84,7 +88,6 @@ public class BookController {
         return "redirect:/books";
     }
 
-    // удаление только через POST, не через GET
     @PostMapping("/books/{id}/delete")
     public String deleteBook(@PathVariable String id) {
         bookService.deleteById(id);
@@ -104,7 +107,6 @@ public class BookController {
         model.addAttribute("genres", genreService.findAll());
     }
 
-    // пользователь ввёл пустое название: показываем форму снова с сообщением
     private String formWithError(Model model, String id, String title, String authorId, String genreId) {
         var book = new Book();
         book.setId(id);
