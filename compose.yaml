@@ -1,0 +1,32 @@
+services:
+  app:
+    build: .
+    container_name: spring-app
+    ports:
+      - "8081:8081"
+    environment:
+      - SPRING_DATA_MONGODB_URI=mongodb://mongo:27017/migration_db
+      - SPRING_DATASOURCE_URL=jdbc:h2:mem:testdb
+      - SPRING_SHELL_INTERACTIVE_ENABLED=false
+    depends_on:
+      mongo:
+        condition: service_healthy
+    restart: unless-stopped
+
+  mongo:
+    image: mongo:7.0
+    container_name: mongo-db
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+
+volumes:
+  mongo-data:
